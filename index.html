@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Kniffel Extreme – Knuffi & Cutie</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 0.2rem;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      align-items: center;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .status {
+      font-weight: 600;
+    }
+    button {
+      padding: 8px 14px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .dice-area {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .die {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+      border: 2px solid #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      background: #fff;
+      cursor: pointer;
+      user-select: none;
+      box-sizing: border-box;
+    }
+    .die.held {
+      border-color: #0077cc;
+      background: #e3f2ff;
+    }
+    .die.disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .info-text {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin: 0 auto;
+      background: white;
+      min-width: 800px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.08);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    th {
+      background: #eee;
+    }
+    td.kategorie {
+      text-align: left;
+      font-weight: 600;
+      background: #fafafa;
+      white-space: nowrap;
+    }
+    tfoot td {
+      font-weight: 700;
+      background: #f0f0f0;
+    }
+    td.score-cell {
+      cursor: pointer;
+      position: relative;
+      min-width: 70px;
+    }
+    td.score-cell.inactive {
+      cursor: default;
+      color: #bbb;
+    }
+    td.score-cell .final {
+      font-weight: 600;
+    }
+    td.score-cell .preview {
+      font-size: 0.8rem;
+      color: #0077cc;
+    }
+    td.score-cell.active-player:hover {
+      background: #e6f2ff;
+    }
+    .hint {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Kniffel Extreme – Knuffi & Cutie</h1>
+<div class="subtitle">
+  Hausregel: Auf den ersten Wurf gewürfelte Kombinationen zählen doppelt (außer Einser–Sechser).
+</div>
+
+<div class="top-bar">
+  <div class="status" id="status-text"></div>
+  <div>Wurf: <span id="roll-info">-</span></div>
+  <button id="roll-button">Würfeln</button>
+  <button id="new-game-button">Neues Spiel</button>
+</div>
+
+<div class="dice-area" id="dice-area">
+  <!-- 6 normale W6 -->
+</div>
+
+<div class="info-text">
+  Würfel anklicken, um sie zu halten oder wieder freizugeben.  
+  Nach jedem Wurf werden in der Spalte des aktiven Spielers alle möglichen Punkte angezeigt.  
+  Klicke auf eine Zahl, um sie einzutragen.
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Kategorie</th>
+      <th id="player-0-header"></th>
+      <th id="player-1-header"></th>
+    </tr>
+  </thead>
+  <tbody id="score-body">
+    <!-- Oberer Teil -->
+    <tr>
+      <td class="kategorie">Einser</td>
+      <td class="score-cell" data-player="0" data-cat="ones"></td>
+      <td class="score-cell" data-player="1" data-cat="ones"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Zweier</td>
+      <td class="score-cell" data-player="0" data-cat="twos"></td>
+      <td class="score-cell" data-player="1" data-cat="twos"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Dreier</td>
+      <td class="score-cell" data-player="0" data-cat="threes"></td>
+      <td class="score-cell" data-player="1" data-cat="threes"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Vierer</td>
+      <td class="score-cell" data-player="0" data-cat="fours"></td>
+      <td class="score-cell" data-player="1" data-cat="fours"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Fünfer</td>
+      <td class="score-cell" data-player="0" data-cat="fives"></td>
+      <td class="score-cell" data-player="1" data-cat="fives"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Sechser</td>
+      <td class="score-cell" data-player="0" data-cat="sixes"></td>
+      <td class="score-cell" data-player="1" data-cat="sixes"></td>
+    </tr>
+
+    <!-- Unterer Teil in deiner Reihenfolge -->
+    <tr>
+      <td class="kategorie">Dreierpasch</td>
+      <td class="score-cell" data-player="0" data-cat="threeKind"></td>
+      <td class="score-cell" data-player="1" data-cat="threeKind"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Viererpasch</td>
+      <td class="score-cell" data-player="0" data-cat="fourKind"></td>
+      <td class="score-cell" data-player="1" data-cat="fourKind"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">2 Paare</td>
+      <td class="score-cell" data-player="0" data-cat="twoPairs"></td>
+      <td class="score-cell" data-player="1" data-cat="twoPairs"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Drei Paare</td>
+      <td class="score-cell" data-player="0" data-cat="threePairs"></td>
+      <td class="score-cell" data-player="1" data-cat="threePairs"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Zwei Dreier</td>
+      <td class="score-cell" data-player="0" data-cat="twoTriples"></td>
+      <td class="score-cell" data-player="1" data-cat="twoTriples"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Full House</td>
+      <td class="score-cell" data-player="0" data-cat="fullHouse"></td>
+      <td class="score-cell" data-player="1" data-cat="fullHouse"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Großes Full House</td>
+      <td class="score-cell" data-player="0" data-cat="bigFullHouse"></td>
+      <td class="score-cell" data-player="1" data-cat="bigFullHouse"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Kleine Straße</td>
+      <td class="score-cell" data-player="0" data-cat="smallStraight"></td>
+      <td class="score-cell" data-player="1" data-cat="smallStraight"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Große Straße</td>
+      <td class="score-cell" data-player="0" data-cat="largeStraight"></td>
+      <td class="score-cell" data-player="1" data-cat="largeStraight"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Highway</td>
+      <td class="score-cell" data-player="0" data-cat="highway"></td>
+      <td class="score-cell" data-player="1" data-cat="highway"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Kniffel (5 gleiche)</td>
+      <td class="score-cell" data-player="0" data-cat="kniffel"></td>
+      <td class="score-cell" data-player="1" data-cat="kniffel"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Kniffel Extreme (6 gleiche)</td>
+      <td class="score-cell" data-player="0" data-cat="kniffelExtreme"></td>
+      <td class="score-cell" data-player="1" data-cat="kniffelExtreme"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">33 oder mehr</td>
+      <td class="score-cell" data-player="0" data-cat="thirtyThreeOrMore"></td>
+      <td class="score-cell" data-player="1" data-cat="thirtyThreeOrMore"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">10 oder weniger</td>
+      <td class="score-cell" data-player="0" data-cat="tenOrLess"></td>
+      <td class="score-cell" data-player="1" data-cat="tenOrLess"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Chance</td>
+      <td class="score-cell" data-player="0" data-cat="chance"></td>
+      <td class="score-cell" data-player="1" data-cat="chance"></td>
+    </tr>
+    <tr>
+      <td class="kategorie">Super Chance</td>
+      <td class="score-cell" data-player="0" data-cat="superChance"></td>
+      <td class="score-cell" data-player="1" data-cat="superChance"></td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <td>Summe oben</td>
+      <td id="sum-upper-0">0</td>
+      <td id="sum-upper-1">0</td>
+    </tr>
+    <tr>
+      <td>Bonus oben (ab 73) = 45</td>
+      <td id="bonus-0">0</td>
+      <td id="bonus-1">0</td>
+    </tr>
+    <tr>
+      <td>Gesamt oben</td>
+      <td id="total-upper-0">0</td>
+      <td id="total-upper-1">0</td>
+    </tr>
+    <tr>
+      <td>Summe unten</td>
+      <td id="sum-lower-0">0</td>
+      <td id="sum-lower-1">0</td>
+    </tr>
+    <tr>
+      <td>Gesamt</td>
+      <td id="grand-total-0">0</td>
+      <td id="grand-total-1">0</td>
+    </tr>
+  </tfoot>
+</table>
+
+<div class="hint">
+  Alle 6 Würfel sind normale W6 (1–6).  
+  Die Verdopplungs-Regel gilt nur für die unteren Kategorien, nicht für Einser–Sechser.
+</div>
+
+<script>
+  // Feste Spielernamen
+  const players = ["Knuffi", "Cutie"];
+
+  // Kategorien in genau der Reihenfolge der Tabelle
+  const categories = [
+    "ones","twos","threes","fours","fives","sixes",
+    "threeKind","fourKind","twoPairs","threePairs","twoTriples",
+    "fullHouse","bigFullHouse","smallStraight","largeStraight",
+    "highway","kniffel","kniffelExtreme","thirtyThreeOrMore",
+    "tenOrLess","chance","superChance"
+  ];
+
+  const upperCats = ["ones","twos","threes","fours","fives","sixes"];
+
+  const state = {
+    scores: [
+      Object.fromEntries(categories.map(c => [c, null])),
+      Object.fromEntries(categories.map(c => [c, null]))
+    ],
+    currentPlayer: 0,
+    dice: [null, null, null, null, null, null],
+    held: [false, false, false, false, false, false],
+    rollNumber: 0,
+    maxRolls: 3,
+    gameOver: false
+  };
+
+  function initUI() {
+    document.getElementById("player-0-header").textContent = players[0];
+    document.getElementById("player-1-header").textContent = players[1];
+
+    const diceArea = document.getElementById("dice-area");
+    diceArea.innerHTML = "";
+    for (let i = 0; i < 6; i++) {
+      const div = document.createElement("div");
+      div.className = "die";
+      div.dataset.index = i;
+      div.textContent = "?";
+      div.addEventListener("click", onDieClick);
+      diceArea.appendChild(div);
+    }
+
+    document.getElementById("roll-button").addEventListener("click", onRollClick);
+    document.getElementById("new-game-button").addEventListener("click", newGame);
+
+    const scoreBody = document.getElementById("score-body");
+    scoreBody.addEventListener("click", onScoreCellClick);
+
+    newGame();
+  }
+
+  function newGame() {
+    state.scores = [
+      Object.fromEntries(categories.map(c => [c, null])),
+      Object.fromEntries(categories.map(c => [c, null]))
+    ];
+    state.dice = [null, null, null, null, null, null];
+    state.held = [false, false, false, false, false, false];
+    state.rollNumber = 0;
+    state.gameOver = false;
+    state.currentPlayer = Math.random() < 0.5 ? 0 : 1;
+
+    updateStatusText();
+    updateDiceUI();
+    updateScoreTable();
+    document.getElementById("roll-info").textContent = "-";
+    document.getElementById("roll-button").disabled = false;
+  }
+
+  function updateStatusText(extra = "") {
+    let text;
+    if (state.gameOver) {
+      const total0 = getGrandTotal(0);
+      const total1 = getGrandTotal(1);
+      if (total0 > total1) {
+        text = "Spiel beendet – Sieger: " + players[0] + " (" + total0 + " : " + total1 + ")";
+      } else if (total1 > total0) {
+        text = "Spiel beendet – Sieger: " + players[1] + " (" + total1 + " : " + total0 + ")";
+      } else {
+        text = "Spiel beendet – Unentschieden! (" + total0 + " : " + total1 + ")";
+      }
+    } else {
+      text = "Am Zug: " + players[state.currentPlayer];
+    }
+    if (extra) text += " " + extra;
+    document.getElementById("status-text").textContent = text;
+  }
+
+  function getGrandTotal(p) {
+    const sumUpper = parseInt(document.getElementById("sum-upper-" + p).textContent, 10) || 0;
+    const bonus = parseInt(document.getElementById("bonus-" + p).textContent, 10) || 0;
+    const sumLower = parseInt(document.getElementById("sum-lower-" + p).textContent, 10) || 0;
+    return sumUpper + bonus + sumLower;
+  }
+
+  function onRollClick() {
+    if (state.gameOver) return;
+    if (state.rollNumber >= state.maxRolls) return;
+
+    state.rollNumber += 1;
+
+    for (let i = 0; i < 6; i++) {
+      if (!state.held[i]) {
+        state.dice[i] = Math.floor(Math.random() * 6) + 1; // alle W6
+      }
+    }
+
+    document.getElementById("roll-info").textContent =
+      state.rollNumber + " / " + state.maxRolls;
+
+    updateDiceUI();
+    updateScorePreview();
+  }
+
+  function onDieClick(e) {
+    if (state.gameOver) return;
+    if (state.rollNumber === 0) return;
+    if (state.rollNumber >= state.maxRolls) return;
+
+    const index = parseInt(e.currentTarget.dataset.index, 10);
+    state.held[index] = !state.held[index];
+    updateDiceUI();
+  }
+
+  function updateDiceUI() {
+    const diceNodes = document.querySelectorAll(".die");
+    diceNodes.forEach(die => {
+      const i = parseInt(die.dataset.index, 10);
+      const value = state.dice[i];
+      die.textContent = value === null ? "?" : value;
+      die.classList.toggle("held", state.held[i]);
+      die.classList.toggle(
+        "disabled",
+        state.rollNumber === 0 || state.rollNumber >= state.maxRolls
+      );
+    });
+  }
+
+  function onScoreCellClick(e) {
+    if (state.gameOver) return;
+
+    const cell = e.target.closest(".score-cell");
+    if (!cell) return;
+
+    const playerIndex = parseInt(cell.dataset.player, 10);
+    const cat = cell.dataset.cat;
+
+    if (playerIndex !== state.currentPlayer) return;
+    if (state.scores[playerIndex][cat] !== null) return;
+    if (state.rollNumber === 0) return;
+
+    const previewValue = cell.dataset.previewScore;
+    if (previewValue === undefined) return;
+
+    const score = parseInt(previewValue, 10);
+    state.scores[playerIndex][cat] = score;
+
+    nextTurn();
+  }
+
+  function nextTurn() {
+    state.dice = [null, null, null, null, null, null];
+    state.held = [false, false, false, false, false, false];
+    state.rollNumber = 0;
+    document.getElementById("roll-info").textContent = "-";
+    document.getElementById("roll-button").disabled = false;
+
+    const allFilled0 = categories.every(c => state.scores[0][c] !== null);
+    const allFilled1 = categories.every(c => state.scores[1][c] !== null);
+    if (allFilled0 && allFilled1) {
+      state.gameOver = true;
+      updateScoreTable();
+      updateStatusText();
+      document.getElementById("roll-button").disabled = true;
+      return;
+    }
+
+    state.currentPlayer = state.currentPlayer === 0 ? 1 : 0;
+    updateStatusText();
+    updateDiceUI();
+    updateScoreTable();
+  }
+
+  function updateScorePreview() {
+    const dice = state.dice.slice();
+    if (state.rollNumber === 0 || dice.some(v => v === null)) {
+      updateScoreTable();
+      return;
+    }
+
+    const previews = calculateAllScores(dice, state.rollNumber);
+
+    const cells = document.querySelectorAll(".score-cell");
+    cells.forEach(cell => {
+      const playerIndex = parseInt(cell.dataset.player, 10);
+      const cat = cell.dataset.cat;
+      const finalScore = state.scores[playerIndex][cat];
+
+      cell.innerHTML = "";
+      cell.classList.remove("inactive", "active-player");
+      cell.removeAttribute("data-preview-score");
+
+      if (finalScore !== null) {
+        const spanFinal = document.createElement("span");
+        spanFinal.className = "final";
+        spanFinal.textContent = finalScore;
+        cell.appendChild(spanFinal);
+        cell.classList.add("inactive");
+        return;
+      }
+
+      if (playerIndex !== state.currentPlayer) {
+        return;
+      }
+
+      const previewScore = previews[cat] ?? 0;
+      cell.dataset.previewScore = previewScore;
+
+      const spanPrev = document.createElement("span");
+      spanPrev.className = "preview";
+      spanPrev.textContent = previewScore;
+      cell.appendChild(spanPrev);
+      cell.classList.add("active-player");
+    });
+
+    updateTotals();
+  }
+
+  function updateScoreTable() {
+    const cells = document.querySelectorAll(".score-cell");
+    cells.forEach(cell => {
+      const playerIndex = parseInt(cell.dataset.player, 10);
+      const cat = cell.dataset.cat;
+      const finalScore = state.scores[playerIndex][cat];
+
+      cell.innerHTML = "";
+      cell.classList.remove("inactive", "active-player");
+      cell.removeAttribute("data-preview-score");
+
+      if (finalScore !== null) {
+        const spanFinal = document.createElement("span");
+        spanFinal.className = "final";
+        spanFinal.textContent = finalScore;
+        cell.appendChild(spanFinal);
+        cell.classList.add("inactive");
+      }
+    });
+
+    updateTotals();
+  }
+
+  function updateTotals() {
+    for (let p = 0; p < 2; p++) {
+      let sumUpper = 0;
+      let sumLower = 0;
+
+      for (const cat of categories) {
+        const value = state.scores[p][cat];
+        if (value !== null) {
+          if (upperCats.includes(cat)) {
+            sumUpper += value;
+          } else {
+            sumLower += value;
+          }
+        }
+      }
+
+      const bonus = sumUpper >= 73 ? 45 : 0;
+      const totalUpper = sumUpper + bonus;
+      const grandTotal = totalUpper + sumLower;
+
+      document.getElementById("sum-upper-" + p).textContent = sumUpper;
+      document.getElementById("bonus-" + p).textContent = bonus;
+      document.getElementById("total-upper-" + p).textContent = totalUpper;
+      document.getElementById("sum-lower-" + p).textContent = sumLower;
+      document.getElementById("grand-total-" + p).textContent = grandTotal;
+    }
+  }
+
+  function calculateAllScores(dice, rollNumber) {
+    const base = {};
+    const counts = new Array(7).fill(0); // 0–6, wir nutzen 1–6
+    dice.forEach(v => counts[v]++);
+
+    const sum = dice.reduce((a,b) => a + b, 0);
+
+    base.ones   = dice.filter(v => v === 1).length * 1;
+    base.twos   = dice.filter(v => v === 2).length * 2;
+    base.threes = dice.filter(v => v === 3).length * 3;
+    base.fours  = dice.filter(v => v === 4).length * 4;
+    base.fives  = dice.filter(v => v === 5).length * 5;
+    base.sixes  = dice.filter(v => v === 6).length * 6;
+
+    const pairCounts = counts.filter(c => c >= 2).length;
+    const triples = counts.filter(c => c === 3).length;
+    const hasThreeKind = counts.some(c => c >= 3);
+    const hasFourKind = counts.some(c => c >= 4);
+    const hasFiveKind = counts.some(c => c >= 5);
+    const hasSixKind = counts.some(c => c >= 6);
+
+    const unique = [...new Set(dice)].sort((a,b) => a - b);
+    let maxConsecutive = 1;
+    let current = 1;
+    for (let i = 1; i < unique.length; i++) {
+      if (unique[i] === unique[i-1] + 1) {
+        current++;
+        if (current > maxConsecutive) maxConsecutive = current;
+      } else {
+        current = 1;
+      }
+    }
+
+    base.threeKind = hasThreeKind ? sum : 0;
+    base.fourKind  = hasFourKind ? sum : 0;
+    base.twoPairs  = pairCounts >= 2 ? sum : 0;
+    base.threePairs = counts.filter(c => c === 2).length === 3 ? 35 : 0;
+    base.twoTriples = triples >= 2 ? 45 : 0;
+    const hasFullHouse = (
+      counts.some(c => c >= 3) &&
+      counts.filter(c => c >= 2).length >= 2
+    );
+    base.fullHouse = hasFullHouse ? 25 : 0;
+    const hasBigFullHouse = counts.includes(4) && counts.includes(2);
+    base.bigFullHouse = hasBigFullHouse ? 45 : 0;
+    base.smallStraight = maxConsecutive >= 4 ? 30 : 0;
+    base.largeStraight = maxConsecutive >= 5 ? 40 : 0;
+    base.highway = maxConsecutive >= 6 ? 50 : 0;
+    base.kniffel = hasFiveKind ? 50 : 0;
+    base.kniffelExtreme = hasSixKind ? 75 : 0;
+    base.thirtyThreeOrMore = sum >= 33 ? 40 : 0;
+    base.tenOrLess = sum <= 10 ? 40 : 0;
+    base.chance = sum;
+    base.superChance = sum * 2;
+
+    const result = {};
+    for (const cat of categories) {
+      let score = base[cat] || 0;
+      if (rollNumber === 1 && !upperCats.includes(cat)) {
+        score *= 2;
+      }
+      result[cat] = score;
+    }
+    return result;
+  }
+
+  initUI();
+</script>
+
+</body>
+</html>
