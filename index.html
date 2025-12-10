@@ -76,7 +76,6 @@
       color: #666;
       margin-bottom: 20px;
     }
-
     table {
       border-collapse: collapse;
       margin: 0 auto;
@@ -130,7 +129,7 @@
     }
   </style>
 
-  <!-- Firebase über Script-Tags einbinden (Version kann leicht abweichen, du kannst hier später die aus der Firebase-Konsole vorgeschlagene Version einsetzen) -->
+  <!-- Firebase über Script-Tags (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
@@ -199,7 +198,7 @@
       <td class="score-cell" data-player="1" data-cat="sixes"></td>
     </tr>
 
-    <!-- Unterer Teil in deiner Reihenfolge -->
+    <!-- Unterer Teil -->
     <tr>
       <td class="kategorie">Dreierpasch</td>
       <td class="score-cell" data-player="0" data-cat="threeKind"></td>
@@ -316,26 +315,26 @@
 </div>
 
 <script>
-  // Firebase-Konfiguration hier einfügen
-  // Ersetze die Platzhalter durch die Werte aus deiner Firebase-Konsole
+  // ---------------------------------------------------------
+  // HIER DEINE FIREBASE-KONFIGURATION EINFÜGEN
+  // ---------------------------------------------------------
   const firebaseConfig = {
     apiKey: "AIzaSyAnaLHogmzT-WBm8d6rh1TUemVITn21zw0",
- authDomain: "knuffi-cutie-kniffel.firebaseapp.com",
-  databaseURL: "https://knuffi-cutie-kniffel-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "knuffi-cutie-kniffel",
-  storageBucket: "knuffi-cutie-kniffel.firebasestorage.app",
-  messagingSenderId: "400615696888",
-  appId: "1:400615696888:web:f5dd1c30584405ab694e0d"
-
+    authDomain: "knuffi-cutie-kniffel.firebaseapp.com",
+    databaseURL: "https://knuffi-cutie-kniffel-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "knuffi-cutie-kniffel",
+    storageBucket: "knuffi-cutie-kniffel.firebasestorage.app",
+    messagingSenderId: "400615696888",
+    appId: "1:400615696888:web:f5dd1c30584405ab694e0d"
   };
 
-  // Feste Spielernamen
+  // ---------------------------------------------------------
+  // AB HIER NICHTS MEHR ANFASSEN :)
+  // ---------------------------------------------------------
+
   const players = ["Knuffi", "Cutie"];
+  const GAME_ID = "knuffi-cutie-v3"; // neue ID, damit alte Daten sicher ignoriert werden
 
-  // Eine gemeinsame Spiel-ID – beide sehen denselben Spielstand
-  const GAME_ID = "knuffi-cutie-v2";
-
-  // Kategorien in der Reihenfolge der Tabelle
   const categories = [
     "ones","twos","threes","fours","fives","sixes",
     "threeKind","fourKind","twoPairs","threePairs","twoTriples",
@@ -390,18 +389,25 @@
     db = firebase.database();
     gameRef = db.ref("games/" + GAME_ID);
 
-    // Auf Änderungen hören
     gameRef.on("value", snapshot => {
       const data = snapshot.val();
-      if (data) {
-        isApplyingRemote = true;
-        applyRemoteGameState(data);
-        isApplyingRemote = false;
-      } else {
-        // Noch kein Spiel vorhanden: dieses Gerät initialisiert eins
+      // Wenn keine Daten da sind -> frisches Spiel schreiben
+      if (!data) {
         newGame();
         saveGameState();
+        return;
       }
+
+      // Nur akzeptieren, wenn Struktur passt
+      if (!data.scores || !Array.isArray(data.scores) || data.scores.length !== 2) {
+        newGame();
+        saveGameState();
+        return;
+      }
+
+      isApplyingRemote = true;
+      applyRemoteGameState(data);
+      isApplyingRemote = false;
     });
   }
 
@@ -509,6 +515,7 @@
     const cat = cell.dataset.cat;
 
     if (playerIndex !== state.currentPlayer) return;
+    if (!state.scores[playerIndex]) return;
     if (state.scores[playerIndex][cat] !== null) return;
     if (state.rollNumber === 0) return;
 
@@ -536,6 +543,7 @@
       updateScoreTable();
       updateStatusText();
       document.getElementById("roll-button").disabled = true;
+      saveGameState();
       return;
     }
 
@@ -558,6 +566,14 @@
     cells.forEach(cell => {
       const playerIndex = parseInt(cell.dataset.player, 10);
       const cat = cell.dataset.cat;
+
+      if (!state.scores[playerIndex]) {
+        cell.innerHTML = "";
+        cell.classList.remove("inactive", "active-player");
+        cell.removeAttribute("data-preview-score");
+        return;
+      }
+
       const finalScore = state.scores[playerIndex][cat];
 
       cell.innerHTML = "";
@@ -595,6 +611,14 @@
     cells.forEach(cell => {
       const playerIndex = parseInt(cell.dataset.player, 10);
       const cat = cell.dataset.cat;
+
+      if (!state.scores[playerIndex]) {
+        cell.innerHTML = "";
+        cell.classList.remove("inactive", "active-player");
+        cell.removeAttribute("data-preview-score");
+        return;
+      }
+
       const finalScore = state.scores[playerIndex][cat];
 
       cell.innerHTML = "";
@@ -615,12 +639,14 @@
 
   function updateTotals() {
     for (let p = 0; p < 2; p++) {
+      if (!state.scores[p]) continue;
+
       let sumUpper = 0;
       let sumLower = 0;
 
       for (const cat of categories) {
         const value = state.scores[p][cat];
-        if (value !== null) {
+        if (value !== null && value !== undefined) {
           if (upperCats.includes(cat)) {
             sumUpper += value;
           } else {
@@ -643,7 +669,7 @@
 
   function calculateAllScores(dice, rollNumber) {
     const base = {};
-    const counts = new Array(7).fill(0); // 0–6, wir nutzen 1–6
+    const counts = new Array(7).fill(0);
     dice.forEach(v => counts[v]++);
 
     const sum = dice.reduce((a,b) => a + b, 0);
@@ -709,6 +735,13 @@
 
   function saveGameState() {
     if (!gameRef || isApplyingRemote) return;
+    // Sicherstellen, dass scores immer ein Array aus 2 Objekten ist
+    if (!Array.isArray(state.scores) || state.scores.length !== 2) {
+      state.scores = [
+        Object.fromEntries(categories.map(c => [c, null])),
+        Object.fromEntries(categories.map(c => [c, null]))
+      ];
+    }
     const gameState = {
       scores: state.scores,
       currentPlayer: state.currentPlayer,
@@ -722,11 +755,16 @@
   }
 
   function applyRemoteGameState(data) {
-    // Daten aus Firebase in unseren State übernehmen
-    state.scores = data.scores || state.scores;
+    if (data.scores && Array.isArray(data.scores) && data.scores.length === 2) {
+      state.scores = data.scores;
+    }
     state.currentPlayer = data.currentPlayer ?? state.currentPlayer;
-    state.dice = data.dice || [null, null, null, null, null, null];
-    state.held = data.held || [false, false, false, false, false, false];
+    state.dice = Array.isArray(data.dice) && data.dice.length === 6
+      ? data.dice
+      : [null, null, null, null, null, null];
+    state.held = Array.isArray(data.held) && data.held.length === 6
+      ? data.held
+      : [false, false, false, false, false, false];
     state.rollNumber = data.rollNumber ?? 0;
     state.maxRolls = data.maxRolls ?? 3;
     state.gameOver = !!data.gameOver;
@@ -738,7 +776,6 @@
 
     updateStatusText();
     updateDiceUI();
-    // Wenn gerade gewürfelt wurde, Vorschau zeigen, sonst feste Werte
     if (state.rollNumber > 0 && state.dice.every(v => v !== null)) {
       updateScorePreview();
     } else {
@@ -746,7 +783,6 @@
     }
   }
 
-  // Start: UI und Firebase initialisieren
   initUI();
   initFirebase();
 </script>
